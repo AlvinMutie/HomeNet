@@ -122,9 +122,20 @@ def upsert_scanned_device(
                 # Update existing record, keeping user-assigned custom_name, is_trusted, notes
                 current_mfg = existing["manufacturer"]
                 new_mfg = manufacturer if (manufacturer != "Unknown" or current_mfg == "Unknown") else current_mfg
-                
-                # If custom_name is not set, use newly inferred friendly name
-                effective_name = existing["custom_name"] or inferred_name
+
+                # Preserve user custom_name; otherwise update with latest inferred name
+                has_custom = existing["custom_name"] and existing["custom_name"] != existing["hostname"]
+                # Check if current custom_name looks like a user-set value vs auto-inferred
+                # We keep custom_name only if user explicitly named it (not just the inferred default)
+                # Simple heuristic: preserve custom_name unless inferred_name is non-None and better
+                effective_name = existing["custom_name"]  # preserve by default
+                # If there's no user-facing custom name, always update with latest inferred
+                if inferred_name and not has_custom:
+                    effective_name = inferred_name
+
+                # Always update device_type and model_name from latest scan result
+                new_device_type = device_type if device_type and device_type != "unknown" else existing["device_type"]
+                new_model_name = model_name if model_name else existing["model_name"]
 
                 conn.execute("""
                     UPDATE devices SET
@@ -133,8 +144,8 @@ def upsert_scanned_device(
                         custom_name = ?,
                         hostname = COALESCE(?, hostname),
                         manufacturer = ?,
-                        device_type = COALESCE(?, device_type),
-                        model_name = COALESCE(?, model_name),
+                        device_type = ?,
+                        model_name = ?,
                         is_active = 1,
                         latency_ms = ?,
                         is_randomized_mac = ?,
@@ -147,8 +158,8 @@ def upsert_scanned_device(
                     effective_name,
                     hostname or existing["hostname"],
                     new_mfg,
-                    device_type if device_type != "unknown" else existing["device_type"],
-                    model_name or existing["model_name"],
+                    new_device_type,
+                    new_model_name,
                     latency_ms,
                     1 if is_randomized_mac else 0,
                     interface or existing["interface"],

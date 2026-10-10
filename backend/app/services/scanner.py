@@ -122,7 +122,7 @@ async def ping_single_host(
 ) -> Optional[Dict[str, Any]]:
     """
     Ping a single host with strict 1s deadline.
-    Returns dict with latency_ms if responding, else None.
+    Returns dict with latency_ms and ttl if responding, else None.
     """
     async with semaphore:
         try:
@@ -136,6 +136,7 @@ async def ping_single_host(
             if proc.returncode == 0:
                 out = stdout.decode("utf-8", errors="ignore")
                 latency = None
+                ttl = None
                 match = re.search(r"time=([\d\.]+)\s*ms", out)
                 if match:
                     latency = float(match.group(1))
@@ -143,7 +144,11 @@ async def ping_single_host(
                     avg_match = re.search(r"rtt [^=]+=\s*[\d\.]+/([\d\.]+)/", out)
                     if avg_match:
                         latency = float(avg_match.group(1))
-                return {"ip": ip, "latency_ms": latency}
+                # Extract TTL for OS fingerprinting
+                ttl_match = re.search(r"ttl=([\d]+)", out, re.IGNORECASE)
+                if ttl_match:
+                    ttl = int(ttl_match.group(1))
+                return {"ip": ip, "latency_ms": latency, "ttl": ttl}
         except (asyncio.TimeoutError, Exception):
             pass
     return None
@@ -204,11 +209,14 @@ class NetworkScanner:
         ]
         ping_results = await asyncio.gather(*ping_tasks)
 
-        # Map responding IPs to latency
+        # Map responding IPs to latency and TTL
         responding_ips: Dict[str, float] = {}
+        ip_to_ttl: Dict[str, Optional[int]] = {}
         for res in ping_results:
             if res:
                 responding_ips[res["ip"]] = res.get("latency_ms")
+                if res.get("ttl") is not None:
+                    ip_to_ttl[res["ip"]] = res["ttl"]
 
         # Read updated ARP tables after network probes
         proc_arp = parse_proc_net_arp()
@@ -251,12 +259,15 @@ class NetworkScanner:
         hostnames = await asyncio.gather(*host_tasks)
         ip_to_host = dict(zip(target_ip_list, hostnames))
 
-        # Run multi-protocol LAN fingerprinting concurrently (SSDP, mDNS, Apple lockdown, NetBIOS)
+        # Run multi-protocol LAN fingerprinting concurrently
+        # (SSDP, mDNS, Apple lockdown, NetBIOS, HTTP banners, SSH banners)
         from backend.app.services.fingerprint import (
             discover_ssdp_metadata,
             discover_mdns_hostnames,
             check_apple_device,
             check_netbios_name,
+            grab_http_banners_bulk,
+            grab_ssh_banner,
             classify_device,
         )
 
@@ -264,15 +275,20 @@ class NetworkScanner:
         mdns_task = discover_mdns_hostnames(target_ip_list)
         apple_tasks = [check_apple_device(ip) for ip in target_ip_list]
         netbios_tasks = [check_netbios_name(ip) for ip in target_ip_list]
+        http_task = grab_http_banners_bulk(target_ip_list)
+        ssh_tasks = [grab_ssh_banner(ip) for ip in target_ip_list]
 
-        ssdp_map, mdns_map, apple_res, netbios_res = await asyncio.gather(
+        ssdp_map, mdns_map, apple_res, netbios_res, http_banners, ssh_res = await asyncio.gather(
             ssdp_task,
             mdns_task,
             asyncio.gather(*apple_tasks),
             asyncio.gather(*netbios_tasks),
+            http_task,
+            asyncio.gather(*ssh_tasks),
         )
         apple_map = dict(zip(target_ip_list, apple_res))
         netbios_map = dict(zip(target_ip_list, netbios_res))
+        ssh_map = dict(zip(target_ip_list, ssh_res))
 
         for ip in target_ip_list:
             arp_data = all_arp_entries.get(ip, {})
@@ -286,6 +302,9 @@ class NetworkScanner:
             ssdp_info = ssdp_map.get(ip)
             is_apple = apple_map.get(ip, False)
             netbios = netbios_map.get(ip)
+            http_banner = http_banners.get(ip)
+            ssh_banner = ssh_map.get(ip)
+            ttl = ip_to_ttl.get(ip)
 
             # Generate stable deterministic ID based on MAC if available, else IP
             if mac:
@@ -307,6 +326,9 @@ class NetworkScanner:
                 is_randomized_mac=is_randomized,
                 is_gateway=(ip == settings.router_ip),
                 is_localhost=(local_host.get("ip") == ip),
+                http_banner=http_banner,
+                ssh_banner=ssh_banner,
+                ttl=ttl,
             )
 
             # Use SSDP manufacturer if MAC manufacturer is unknown

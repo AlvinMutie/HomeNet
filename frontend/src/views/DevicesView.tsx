@@ -294,9 +294,15 @@ export const DevicesView: React.FC<DevicesViewProps> = ({
                 </tr>
               ) : (
                 sortedDevices.map((device) => {
+                  // primary display name: custom_name > hostname > ip
                   const displayName = device.custom_name || device.hostname || device.ip_address;
                   const isTrusted = device.is_trusted === 1;
                   const isUntrusted = device.is_trusted === 0;
+
+                  // Show manufacturer as a hint if it's known and not already in the display name
+                  const knownMfg = device.manufacturer && device.manufacturer !== 'Unknown' ? device.manufacturer : null;
+                  const mfgAlreadyInName = knownMfg && displayName.toLowerCase().includes(knownMfg.toLowerCase());
+                  const showMfgHint = knownMfg && !mfgAlreadyInName;
 
                   return (
                     <tr
@@ -306,26 +312,32 @@ export const DevicesView: React.FC<DevicesViewProps> = ({
                       {/* Name & Identity */}
                       <td className="py-3.5 pl-4">
                         <div className="flex items-center space-x-3">
-                          <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center flex-shrink-0">
+                          <div className="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center flex-shrink-0">
                             {getDeviceIcon(device)}
                           </div>
                           <div>
                             <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
                               <span className="font-semibold text-white">{displayName}</span>
                               {device.device_type === 'smart_tv' && (
-                                <span className="px-1.5 py-0.5 rounded text-[10px] bg-purple-500/10 text-purple-300 border border-purple-500/20 font-medium">Smart TV</span>
+                                <span className="px-1.5 py-0.5 rounded text-[10px] bg-purple-500/10 text-purple-300 border border-purple-500/20 font-medium">📺 Smart TV</span>
                               )}
                               {device.device_type === 'smartphone' && (
-                                <span className="px-1.5 py-0.5 rounded text-[10px] bg-sky-500/10 text-sky-300 border border-sky-500/20 font-medium">Phone</span>
+                                <span className="px-1.5 py-0.5 rounded text-[10px] bg-sky-500/10 text-sky-300 border border-sky-500/20 font-medium">📱 Phone</span>
+                              )}
+                              {device.device_type === 'tablet' && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] bg-violet-500/10 text-violet-300 border border-violet-500/20 font-medium">📟 Tablet</span>
                               )}
                               {device.device_type === 'laptop' && (
-                                <span className="px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-medium">Laptop / PC</span>
+                                <span className="px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-medium">💻 PC</span>
                               )}
                               {device.device_type === 'router' && (
-                                <span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-medium">Gateway</span>
+                                <span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-medium">🌐 Gateway</span>
                               )}
                               {device.device_type === 'iot' && (
-                                <span className="px-1.5 py-0.5 rounded text-[10px] bg-amber-500/10 text-amber-300 border border-amber-500/20 font-medium">IoT</span>
+                                <span className="px-1.5 py-0.5 rounded text-[10px] bg-amber-500/10 text-amber-300 border border-amber-500/20 font-medium">⚙️ IoT</span>
+                              )}
+                              {device.device_type === 'printer' && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] bg-rose-500/10 text-rose-300 border border-rose-500/20 font-medium">🖨️ Printer</span>
                               )}
                               <button
                                 onClick={() => onEditDevice(device)}
@@ -335,14 +347,23 @@ export const DevicesView: React.FC<DevicesViewProps> = ({
                                 <Edit2 className="w-3 h-3" />
                               </button>
                             </div>
-                            {device.model_name && (
-                              <p className="text-[11px] text-sky-300/80 font-mono mt-0.5">
-                                Model: {device.model_name}
-                              </p>
-                            )}
-                            {device.custom_name && device.hostname && (
-                              <span className="text-[10px] text-slate-500 font-mono block">
-                                Hostname: {device.hostname}
+                            {/* Secondary info row */}
+                            <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
+                              {showMfgHint && (
+                                <span className="text-[11px] text-slate-400 font-medium">
+                                  {knownMfg}
+                                </span>
+                              )}
+                              {device.model_name && (
+                                <span className="text-[11px] text-sky-400/70 font-mono">
+                                  {device.model_name}
+                                </span>
+                              )}
+                            </div>
+                            {/* Hostname (always show when we have it and it's different from display name) */}
+                            {device.hostname && device.hostname !== displayName && (
+                              <span className="text-[10px] text-slate-500 font-mono block mt-0.5">
+                                {device.hostname}
                               </span>
                             )}
                             {device.notes && (
