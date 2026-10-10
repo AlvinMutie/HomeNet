@@ -1,5 +1,6 @@
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Query, status
+from pydantic import BaseModel, Field
 from backend.app.models.device import (
     DeviceResponse,
     DevicePatchRequest,
@@ -13,9 +14,15 @@ from backend.app.database import (
     get_connection,
 )
 from backend.app.services.scanner import NetworkScanner
-from backend.app.services.router_service import router_service, RouterOperationError
+from backend.app.services.router_auth import block_device_on_router, unblock_device_on_router
 
 router = APIRouter(prefix="/devices", tags=["Devices"])
+
+
+class BlockRequest(BaseModel):
+    """Router credentials required to authenticate and block/unblock a device."""
+    router_username: str = Field(..., description="Router admin username (e.g. 'telecomadmin' or 'admin')")
+    router_password: str = Field(..., description="Router admin password")
 
 
 @router.get("", response_model=List[DeviceResponse])
@@ -90,11 +97,18 @@ async def update_device(device_id: str, patch_data: DevicePatchRequest):
 
 
 @router.post("/{device_id}/block")
-async def block_device_attempt(device_id: str):
+async def block_device(
+    device_id: str,
+    body: BlockRequest,
+):
     """
-    Device blocking endpoint.
-    Strictly documents that genuine blocking requires authenticated Huawei HG8145V6 integration.
-    Simulated blocking is forbidden.
+    Block a device by adding its MAC address to the Huawei HG8145V6 Wi-Fi deny list.
+
+    Requires your router admin credentials. The router uses SHA-256 challenge-response
+    authentication — your password is never sent in plaintext.
+
+    Effect: The device is deauthenticated from Wi-Fi within seconds and cannot reconnect
+    until you unblock it.
     """
     device = get_device_by_id(device_id)
     if not device:
@@ -106,24 +120,69 @@ async def block_device_attempt(device_id: str):
     if not mac:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot block device: No MAC address available for this device."
-        )
-
-    # Invoke router service, which explains the requirement
-    try:
-        await router_service.block_device(mac_address=mac, device_name=name)
-    except RouterOperationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED,
             detail={
-                "message": str(e),
-                "device_id": device_id,
-                "target_device": name,
-                "mac_address": mac,
-                "status": "unavailable_requires_router_auth",
-                "recommendation": "Device blocking requires adding an Access Control / MAC filter rule directly inside the Huawei HG8145V6 web administration interface (https://192.168.100.1)."
+                "error": "Cannot block device: No MAC address is known for this device.",
+                "tip": "Devices using private/randomized MACs cannot be reliably blocked by MAC address since they change their MAC on each connection."
             }
         )
+
+    success, message = await block_device_on_router(
+        mac=mac,
+        username=body.router_username,
+        password=body.router_password,
+    )
+
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail={
+                "error": message,
+                "device": name,
+                "mac_address": mac,
+                "tip": "Check your router credentials and ensure the router web UI is reachable at https://192.168.100.1"
+            }
+        )
+
+    return {
+        "status": "blocked",
+        "device": name,
+        "mac_address": mac,
+        "message": message,
+    }
+
+
+@router.post("/{device_id}/unblock")
+async def unblock_device(
+    device_id: str,
+    body: BlockRequest,
+):
+    """
+    Remove a device from the Huawei HG8145V6 Wi-Fi deny list.
+    The device will be able to reconnect to Wi-Fi after this.
+    """
+    device = get_device_by_id(device_id)
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+
+    mac = device.get("mac_address")
+    name = device.get("custom_name") or device.get("hostname") or device.get("ip_address")
+
+    if not mac:
+        raise HTTPException(status_code=400, detail="No MAC address known for this device")
+
+    success, message = await unblock_device_on_router(
+        mac=mac,
+        username=body.router_username,
+        password=body.router_password,
+    )
+
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail={"error": message, "device": name}
+        )
+
+    return {"status": "unblocked", "device": name, "mac_address": mac, "message": message}
 
 
 @router.delete("/{device_id}")
