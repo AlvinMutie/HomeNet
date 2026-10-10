@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings, Shield, Terminal, Globe, Server, CheckCircle2, Lock } from 'lucide-react';
+import { Settings, Shield, Terminal, Globe, Server, CheckCircle2 } from 'lucide-react';
 
 export const SettingsView: React.FC = () => {
   return (

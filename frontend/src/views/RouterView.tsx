@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RouterDiagnostics, RouterStatus } from '../types';
+import type { RouterDiagnostics, RouterStatus } from '../types';
 import { fetchRouterDiagnostics } from '../services/api';
 import { 
   Router as RouterIcon, 
@@ -11,8 +11,7 @@ import {
   AlertCircle, 
   Code, 
   Lock, 
-  Layers,
-  Cpu
+  Layers
 } from 'lucide-react';
 
 interface RouterViewProps {
