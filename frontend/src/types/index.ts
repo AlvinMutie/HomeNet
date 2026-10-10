@@ -5,6 +5,8 @@ export interface Device {
   custom_name: string | null;
   hostname: string | null;
   manufacturer: string;
+  device_type: string; // smart_tv, smartphone, laptop, router, iot, printer, unknown
+  model_name: string | null;
   is_trusted: number; // 0: untrusted, 1: trusted, 2: needs review / unassigned
   is_active: number;  // 0: offline/previously seen, 1: responding now
   latency_ms: number | null;

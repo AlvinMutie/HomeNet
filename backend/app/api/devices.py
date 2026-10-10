@@ -82,6 +82,7 @@ async def update_device(device_id: str, patch_data: DevicePatchRequest):
         custom_name=patch_data.custom_name,
         is_trusted=patch_data.is_trusted,
         notes=patch_data.notes,
+        device_type=patch_data.device_type,
     )
     if not updated:
         raise HTTPException(status_code=404, detail="Device not found")

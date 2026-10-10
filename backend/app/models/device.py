@@ -6,6 +6,7 @@ class DevicePatchRequest(BaseModel):
     custom_name: Optional[str] = Field(None, max_length=100, description="Friendly user-assigned device name")
     is_trusted: Optional[int] = Field(None, ge=0, le=2, description="Trust status: 0=Untrusted, 1=Trusted, 2=Needs Review")
     notes: Optional[str] = Field(None, max_length=500, description="Custom notes about this device")
+    device_type: Optional[str] = Field(None, description="Device category: smart_tv, smartphone, laptop, router, iot, printer, unknown")
 
 
 class DeviceResponse(BaseModel):
@@ -15,6 +16,8 @@ class DeviceResponse(BaseModel):
     custom_name: Optional[str] = None
     hostname: Optional[str] = None
     manufacturer: str = "Unknown"
+    device_type: Optional[str] = "unknown"
+    model_name: Optional[str] = None
     is_trusted: int = 2 # 0: untrusted, 1: trusted, 2: unassigned
     is_active: int = 1  # 0: offline, 1: responding now
     latency_ms: Optional[float] = None

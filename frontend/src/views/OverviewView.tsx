@@ -11,7 +11,12 @@ import {
   ArrowRight,
   Edit2,
   Copy,
-  Check
+  Check,
+  Smartphone,
+  Laptop,
+  Tv,
+  Router as RouterIcon,
+  Cpu
 } from 'lucide-react';
 
 interface OverviewViewProps {
@@ -42,6 +47,21 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
     navigator.clipboard.writeText(text);
     setCopiedIp(text);
     setTimeout(() => setCopiedIp(null), 2000);
+  };
+
+  const getDeviceIcon = (device: Device) => {
+    switch (device.device_type) {
+      case 'smart_tv':
+        return <Tv className="w-3.5 h-3.5 text-purple-400" />;
+      case 'smartphone':
+        return <Smartphone className="w-3.5 h-3.5 text-sky-400" />;
+      case 'laptop':
+        return <Laptop className="w-3.5 h-3.5 text-indigo-400" />;
+      case 'router':
+        return <RouterIcon className="w-3.5 h-3.5 text-emerald-400" />;
+      default:
+        return <Cpu className="w-3.5 h-3.5 text-slate-400" />;
+    }
   };
 
   const recentActiveDevices = devices.slice(0, 6);
@@ -179,11 +199,23 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                 return (
                   <tr key={device.id} className="hover:bg-slate-800/40 transition-colors group">
                     <td className="py-3 pl-2">
-                      <div className="flex items-center space-x-2">
-                        <span className="font-semibold text-white">{displayName}</span>
-                        {device.custom_name && device.hostname && (
-                          <span className="text-[10px] text-slate-500 font-mono">({device.hostname})</span>
-                        )}
+                      <div className="flex items-center space-x-2.5">
+                        <div className="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700/80 flex items-center justify-center flex-shrink-0">
+                          {getDeviceIcon(device)}
+                        </div>
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <span className="font-semibold text-white">{displayName}</span>
+                            {device.custom_name && device.hostname && (
+                              <span className="text-[10px] text-slate-500 font-mono">({device.hostname})</span>
+                            )}
+                          </div>
+                          {device.model_name && (
+                            <span className="text-[10px] text-sky-400 font-mono block">
+                              {device.model_name}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="py-3 font-mono text-sky-300">

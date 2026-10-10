@@ -18,7 +18,8 @@ import {
   Smartphone,
   Laptop,
   Tv,
-  Cpu
+  Cpu,
+  Router
 } from 'lucide-react';
 
 interface DevicesViewProps {
@@ -118,17 +119,31 @@ export const DevicesView: React.FC<DevicesViewProps> = ({
   };
 
   const getDeviceIcon = (device: Device) => {
-    const name = (device.custom_name || device.hostname || '').toLowerCase();
-    if (name.includes('phone') || name.includes('android') || name.includes('iphone')) {
-      return <Smartphone className="w-4 h-4 text-sky-400" />;
+    switch (device.device_type) {
+      case 'smart_tv':
+        return <Tv className="w-4 h-4 text-purple-400" />;
+      case 'smartphone':
+        return <Smartphone className="w-4 h-4 text-sky-400" />;
+      case 'laptop':
+        return <Laptop className="w-4 h-4 text-indigo-400" />;
+      case 'router':
+        return <Router className="w-4 h-4 text-emerald-400" />;
+      case 'iot':
+        return <Cpu className="w-4 h-4 text-amber-400" />;
+      default: {
+        const name = (device.custom_name || device.hostname || '').toLowerCase();
+        if (name.includes('phone') || name.includes('android') || name.includes('iphone')) {
+          return <Smartphone className="w-4 h-4 text-sky-400" />;
+        }
+        if (name.includes('tv') || name.includes('bravia')) {
+          return <Tv className="w-4 h-4 text-purple-400" />;
+        }
+        if (name.includes('laptop') || name.includes('macbook') || name.includes('pc')) {
+          return <Laptop className="w-4 h-4 text-indigo-400" />;
+        }
+        return <Cpu className="w-4 h-4 text-slate-400" />;
+      }
     }
-    if (name.includes('laptop') || name.includes('macbook') || name.includes('pc') || name.includes('desktop')) {
-      return <Laptop className="w-4 h-4 text-indigo-400" />;
-    }
-    if (name.includes('tv') || name.includes('roku') || name.includes('chromecast')) {
-      return <Tv className="w-4 h-4 text-purple-400" />;
-    }
-    return <Cpu className="w-4 h-4 text-slate-400" />;
   };
 
   return (
@@ -295,8 +310,23 @@ export const DevicesView: React.FC<DevicesViewProps> = ({
                             {getDeviceIcon(device)}
                           </div>
                           <div>
-                            <div className="flex items-center space-x-1.5">
+                            <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
                               <span className="font-semibold text-white">{displayName}</span>
+                              {device.device_type === 'smart_tv' && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] bg-purple-500/10 text-purple-300 border border-purple-500/20 font-medium">Smart TV</span>
+                              )}
+                              {device.device_type === 'smartphone' && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] bg-sky-500/10 text-sky-300 border border-sky-500/20 font-medium">Phone</span>
+                              )}
+                              {device.device_type === 'laptop' && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-medium">Laptop / PC</span>
+                              )}
+                              {device.device_type === 'router' && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-medium">Gateway</span>
+                              )}
+                              {device.device_type === 'iot' && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] bg-amber-500/10 text-amber-300 border border-amber-500/20 font-medium">IoT</span>
+                              )}
                               <button
                                 onClick={() => onEditDevice(device)}
                                 className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-sky-400 transition-opacity p-0.5"
@@ -305,8 +335,13 @@ export const DevicesView: React.FC<DevicesViewProps> = ({
                                 <Edit2 className="w-3 h-3" />
                               </button>
                             </div>
+                            {device.model_name && (
+                              <p className="text-[11px] text-sky-300/80 font-mono mt-0.5">
+                                Model: {device.model_name}
+                              </p>
+                            )}
                             {device.custom_name && device.hostname && (
-                              <span className="text-[11px] text-slate-500 font-mono">
+                              <span className="text-[10px] text-slate-500 font-mono block">
                                 Hostname: {device.hostname}
                               </span>
                             )}

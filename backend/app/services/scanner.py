@@ -251,6 +251,29 @@ class NetworkScanner:
         hostnames = await asyncio.gather(*host_tasks)
         ip_to_host = dict(zip(target_ip_list, hostnames))
 
+        # Run multi-protocol LAN fingerprinting concurrently (SSDP, mDNS, Apple lockdown, NetBIOS)
+        from backend.app.services.fingerprint import (
+            discover_ssdp_metadata,
+            discover_mdns_hostnames,
+            check_apple_device,
+            check_netbios_name,
+            classify_device,
+        )
+
+        ssdp_task = discover_ssdp_metadata()
+        mdns_task = discover_mdns_hostnames(target_ip_list)
+        apple_tasks = [check_apple_device(ip) for ip in target_ip_list]
+        netbios_tasks = [check_netbios_name(ip) for ip in target_ip_list]
+
+        ssdp_map, mdns_map, apple_res, netbios_res = await asyncio.gather(
+            ssdp_task,
+            mdns_task,
+            asyncio.gather(*apple_tasks),
+            asyncio.gather(*netbios_tasks),
+        )
+        apple_map = dict(zip(target_ip_list, apple_res))
+        netbios_map = dict(zip(target_ip_list, netbios_res))
+
         for ip in target_ip_list:
             arp_data = all_arp_entries.get(ip, {})
             mac = arp_data.get("mac")
@@ -259,7 +282,10 @@ class NetworkScanner:
 
             # Look up manufacturer from MAC
             manufacturer, is_randomized = lookup_manufacturer(mac)
-            hostname = ip_to_host.get(ip)
+            mdns_host = mdns_map.get(ip) or ip_to_host.get(ip)
+            ssdp_info = ssdp_map.get(ip)
+            is_apple = apple_map.get(ip, False)
+            netbios = netbios_map.get(ip)
 
             # Generate stable deterministic ID based on MAC if available, else IP
             if mac:
@@ -269,26 +295,40 @@ class NetworkScanner:
 
             active_db_ids.append(stable_id)
 
+            # Multi-engine device classification
+            category, inferred_name, model_name = classify_device(
+                ip=ip,
+                mac=mac,
+                manufacturer=manufacturer,
+                hostname=mdns_host,
+                ssdp_info=ssdp_info,
+                is_apple_port=is_apple,
+                netbios_name=netbios,
+                is_randomized_mac=is_randomized,
+                is_gateway=(ip == settings.router_ip),
+                is_localhost=(local_host.get("ip") == ip),
+            )
+
+            # Use SSDP manufacturer if MAC manufacturer is unknown
+            effective_mfg = manufacturer
+            if effective_mfg == "Unknown" and ssdp_info and ssdp_info.get("manufacturer"):
+                effective_mfg = ssdp_info["manufacturer"]
+            elif effective_mfg == "Unknown" and is_apple:
+                effective_mfg = "Apple"
+
             saved = upsert_scanned_device(
                 device_id=stable_id,
                 ip_address=ip,
                 mac_address=mac,
-                hostname=hostname,
-                manufacturer=manufacturer,
+                hostname=mdns_host,
+                manufacturer=effective_mfg,
                 latency_ms=latency,
                 is_randomized_mac=is_randomized,
-                interface=dev_interface
+                interface=dev_interface,
+                device_type=category,
+                model_name=model_name,
+                inferred_name=inferred_name,
             )
-
-            # Tag dev machine if matching local host
-            if local_host.get("ip") == ip and not saved.get("custom_name"):
-                from backend.app.database import update_device_metadata
-                saved = update_device_metadata(
-                    device_id=stable_id,
-                    custom_name="Kali Linux (This Dev Machine)",
-                    is_trusted=1,
-                    notes="Local development system"
-                ) or saved
 
             discovered_devices.append(saved)
 

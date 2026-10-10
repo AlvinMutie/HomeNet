@@ -98,7 +98,7 @@ export function App() {
 
   const handleSaveDevice = async (
     deviceId: string,
-    data: { custom_name?: string | null; is_trusted?: number; notes?: string | null }
+    data: { custom_name?: string | null; is_trusted?: number; notes?: string | null; device_type?: string }
   ) => {
     try {
       const updated = await patchDevice(deviceId, data);

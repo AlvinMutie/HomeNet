@@ -36,6 +36,8 @@ def init_db():
                     custom_name TEXT,
                     hostname TEXT,
                     manufacturer TEXT DEFAULT 'Unknown',
+                    device_type TEXT DEFAULT 'unknown',
+                    model_name TEXT,
                     is_trusted INTEGER DEFAULT 2, -- 0: untrusted/needs review, 1: trusted, 2: unassigned
                     is_active INTEGER DEFAULT 1,  -- 0: offline/previously seen, 1: responding now
                     latency_ms REAL,
@@ -46,6 +48,13 @@ def init_db():
                     last_seen TEXT NOT NULL
                 )
             """)
+
+            # Ensure columns exist in case of older SQLite file
+            for col in ["device_type", "model_name"]:
+                try:
+                    conn.execute(f"ALTER TABLE devices ADD COLUMN {col} TEXT")
+                except sqlite3.OperationalError:
+                    pass
 
             conn.execute("""
                 CREATE INDEX IF NOT EXISTS idx_devices_mac ON devices(mac_address);
@@ -89,7 +98,10 @@ def upsert_scanned_device(
     manufacturer: str,
     latency_ms: Optional[float],
     is_randomized_mac: bool,
-    interface: Optional[str] = None
+    interface: Optional[str] = None,
+    device_type: str = "unknown",
+    model_name: Optional[str] = None,
+    inferred_name: Optional[str] = None
 ) -> Dict[str, Any]:
     now_iso = datetime.now(timezone.utc).isoformat()
     conn = get_connection()
@@ -107,17 +119,22 @@ def upsert_scanned_device(
                 ).fetchone()
 
             if existing:
-                # Update existing record, keeping custom_name, is_trusted, notes
-                # Only update manufacturer if currently Unknown and new one is known
+                # Update existing record, keeping user-assigned custom_name, is_trusted, notes
                 current_mfg = existing["manufacturer"]
                 new_mfg = manufacturer if (manufacturer != "Unknown" or current_mfg == "Unknown") else current_mfg
+                
+                # If custom_name is not set, use newly inferred friendly name
+                effective_name = existing["custom_name"] or inferred_name
 
                 conn.execute("""
                     UPDATE devices SET
                         ip_address = ?,
                         mac_address = COALESCE(?, mac_address),
+                        custom_name = ?,
                         hostname = COALESCE(?, hostname),
                         manufacturer = ?,
+                        device_type = COALESCE(?, device_type),
+                        model_name = COALESCE(?, model_name),
                         is_active = 1,
                         latency_ms = ?,
                         is_randomized_mac = ?,
@@ -127,8 +144,11 @@ def upsert_scanned_device(
                 """, (
                     ip_address,
                     mac_address.lower() if mac_address else None,
+                    effective_name,
                     hostname or existing["hostname"],
                     new_mfg,
+                    device_type if device_type != "unknown" else existing["device_type"],
+                    model_name or existing["model_name"],
                     latency_ms,
                     1 if is_randomized_mac else 0,
                     interface or existing["interface"],
@@ -139,19 +159,18 @@ def upsert_scanned_device(
                 return dict(updated)
             else:
                 # Insert brand new device
-                # If IP matches router gateway, give it a helpful default name
-                default_name = None
+                default_name = inferred_name
                 is_trusted = 2 # unassigned/review
                 if ip_address == settings.router_ip:
                     default_name = "Huawei HG8145V6 (Safaricom Gateway)"
-                    is_trusted = 1 # router is trusted by default
+                    is_trusted = 1
 
                 conn.execute("""
                     INSERT INTO devices (
                         id, mac_address, ip_address, custom_name, hostname,
-                        manufacturer, is_trusted, is_active, latency_ms,
+                        manufacturer, device_type, model_name, is_trusted, is_active, latency_ms,
                         is_randomized_mac, interface, notes, first_seen, last_seen
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?)
                 """, (
                     device_id,
                     mac_address.lower() if mac_address else None,
@@ -159,6 +178,8 @@ def upsert_scanned_device(
                     default_name,
                     hostname,
                     manufacturer,
+                    device_type,
+                    model_name,
                     is_trusted,
                     latency_ms,
                     1 if is_randomized_mac else 0,
@@ -259,7 +280,8 @@ def update_device_metadata(
     device_id: str,
     custom_name: Optional[str] = None,
     is_trusted: Optional[int] = None,
-    notes: Optional[str] = None
+    notes: Optional[str] = None,
+    device_type: Optional[str] = None
 ) -> Optional[Dict[str, Any]]:
     conn = get_connection()
     try:
@@ -279,6 +301,9 @@ def update_device_metadata(
             if notes is not None:
                 updates.append("notes = ?")
                 params.append(notes.strip() if notes.strip() else None)
+            if device_type is not None:
+                updates.append("device_type = ?")
+                params.append(device_type.strip() if device_type.strip() else "unknown")
 
             if updates:
                 params.append(device_id)

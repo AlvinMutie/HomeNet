@@ -1,12 +1,25 @@
 import React, { useState } from 'react';
 import type { Device } from '../types';
-import { X, ShieldCheck, ShieldAlert, HelpCircle, Save, Smartphone, Laptop, Tv, Home } from 'lucide-react';
+import { 
+  X, 
+  ShieldCheck, 
+  ShieldAlert, 
+  HelpCircle, 
+  Save, 
+  Smartphone, 
+  Laptop, 
+  Tv, 
+  Home, 
+  Router, 
+  Cpu, 
+  HelpCircle as QuestionIcon
+} from 'lucide-react';
 
 interface DeviceEditModalProps {
   device: Device;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (deviceId: string, data: { custom_name?: string | null; is_trusted?: number; notes?: string | null }) => Promise<void>;
+  onSave: (deviceId: string, data: { custom_name?: string | null; is_trusted?: number; notes?: string | null; device_type?: string }) => Promise<void>;
 }
 
 export const DeviceEditModal: React.FC<DeviceEditModalProps> = ({
@@ -16,6 +29,7 @@ export const DeviceEditModal: React.FC<DeviceEditModalProps> = ({
   onSave,
 }) => {
   const [customName, setCustomName] = useState(device.custom_name || '');
+  const [deviceType, setDeviceType] = useState<string>(device.device_type || 'unknown');
   const [isTrusted, setIsTrusted] = useState<number>(device.is_trusted);
   const [notes, setNotes] = useState(device.notes || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -28,6 +42,7 @@ export const DeviceEditModal: React.FC<DeviceEditModalProps> = ({
     try {
       await onSave(device.id, {
         custom_name: customName.trim() ? customName.trim() : null,
+        device_type: deviceType,
         is_trusted: isTrusted,
         notes: notes.trim() ? notes.trim() : null,
       });
@@ -40,10 +55,19 @@ export const DeviceEditModal: React.FC<DeviceEditModalProps> = ({
   };
 
   const quickPresets = [
-    { label: 'My Phone', icon: <Smartphone className="w-3.5 h-3.5" /> },
-    { label: 'Laptop', icon: <Laptop className="w-3.5 h-3.5" /> },
-    { label: 'Smart TV', icon: <Tv className="w-3.5 h-3.5" /> },
-    { label: 'Family Device', icon: <Home className="w-3.5 h-3.5" /> },
+    { label: 'My Phone', type: 'smartphone', icon: <Smartphone className="w-3.5 h-3.5" /> },
+    { label: 'Laptop', type: 'laptop', icon: <Laptop className="w-3.5 h-3.5" /> },
+    { label: 'Smart TV', type: 'smart_tv', icon: <Tv className="w-3.5 h-3.5" /> },
+    { label: 'Family Device', type: 'smartphone', icon: <Home className="w-3.5 h-3.5" /> },
+  ];
+
+  const categories = [
+    { id: 'smartphone', label: 'Phone', icon: <Smartphone className="w-4 h-4 text-sky-400" /> },
+    { id: 'smart_tv', label: 'Smart TV', icon: <Tv className="w-4 h-4 text-purple-400" /> },
+    { id: 'laptop', label: 'Laptop / PC', icon: <Laptop className="w-4 h-4 text-indigo-400" /> },
+    { id: 'router', label: 'Gateway', icon: <Router className="w-4 h-4 text-emerald-400" /> },
+    { id: 'iot', label: 'IoT Device', icon: <Cpu className="w-4 h-4 text-amber-400" /> },
+    { id: 'unknown', label: 'Other', icon: <QuestionIcon className="w-4 h-4 text-slate-400" /> },
   ];
 
   return (
@@ -62,18 +86,21 @@ export const DeviceEditModal: React.FC<DeviceEditModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[85vh] overflow-y-auto">
           {/* Quick preset name chips */}
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-              Friendly Name
+              Device Name
             </label>
             <div className="flex flex-wrap gap-1.5 mb-2.5">
               {quickPresets.map((preset) => (
                 <button
                   key={preset.label}
                   type="button"
-                  onClick={() => setCustomName(preset.label)}
+                  onClick={() => {
+                    setCustomName(preset.label);
+                    setDeviceType(preset.type);
+                  }}
                   className="inline-flex items-center space-x-1.5 px-2.5 py-1 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/60 transition-colors"
                 >
                   {preset.icon}
@@ -85,9 +112,33 @@ export const DeviceEditModal: React.FC<DeviceEditModalProps> = ({
               type="text"
               value={customName}
               onChange={(e) => setCustomName(e.target.value)}
-              placeholder="e.g. Living Room TV, Work MacBook"
+              placeholder="e.g. Alvin's Phone, Sony BRAVIA TV, Work Laptop"
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 text-sm"
             />
+          </div>
+
+          {/* Device Category Selector */}
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+              Device Type Category
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setDeviceType(cat.id)}
+                  className={`flex items-center space-x-2 p-2.5 rounded-xl border text-xs font-medium transition-all ${
+                    deviceType === cat.id
+                      ? 'bg-sky-500/10 border-sky-500/40 text-sky-300 ring-1 ring-sky-500/30'
+                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-850'
+                  }`}
+                >
+                  {cat.icon}
+                  <span>{cat.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Trust status selection */}
@@ -99,13 +150,13 @@ export const DeviceEditModal: React.FC<DeviceEditModalProps> = ({
               <button
                 type="button"
                 onClick={() => setIsTrusted(1)}
-                className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all text-xs ${
+                className={`flex flex-col items-center justify-center p-2.5 rounded-xl border transition-all text-xs ${
                   isTrusted === 1
                     ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300 ring-1 ring-emerald-500/30'
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-800'
                 }`}
               >
-                <ShieldCheck className="w-5 h-5 mb-1 text-emerald-400" />
+                <ShieldCheck className="w-4 h-4 mb-1 text-emerald-400" />
                 <span className="font-semibold">Trusted</span>
                 <span className="text-[10px] text-slate-500 text-center mt-0.5">Known device</span>
               </button>
@@ -113,52 +164,55 @@ export const DeviceEditModal: React.FC<DeviceEditModalProps> = ({
               <button
                 type="button"
                 onClick={() => setIsTrusted(2)}
-                className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all text-xs ${
+                className={`flex flex-col items-center justify-center p-2.5 rounded-xl border transition-all text-xs ${
                   isTrusted === 2
                     ? 'bg-amber-500/10 border-amber-500/40 text-amber-300 ring-1 ring-amber-500/30'
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-800'
                 }`}
               >
-                <HelpCircle className="w-5 h-5 mb-1 text-amber-400" />
-                <span className="font-semibold">Needs Review</span>
+                <HelpCircle className="w-4 h-4 mb-1 text-amber-400" />
+                <span className="font-semibold">Review</span>
                 <span className="text-[10px] text-slate-500 text-center mt-0.5">Unverified</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setIsTrusted(0)}
-                className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all text-xs ${
+                className={`flex flex-col items-center justify-center p-2.5 rounded-xl border transition-all text-xs ${
                   isTrusted === 0
                     ? 'bg-rose-500/10 border-rose-500/40 text-rose-300 ring-1 ring-rose-500/30'
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-800'
                 }`}
               >
-                <ShieldAlert className="w-5 h-5 mb-1 text-rose-400" />
+                <ShieldAlert className="w-4 h-4 mb-1 text-rose-400" />
                 <span className="font-semibold">Untrusted</span>
                 <span className="text-[10px] text-slate-500 text-center mt-0.5">Flagged</span>
               </button>
             </div>
-            <p className="text-[11px] text-slate-500 mt-2">
-              Note: Trust labels are organizational markers to help you categorize home network equipment. They do not alter firewall rules.
-            </p>
           </div>
 
           {/* Notes */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
               Notes
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              placeholder="e.g. Connected on 5GHz Wi-Fi band, bedroom outlet"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 text-sm"
+              placeholder="e.g. Bedroom TV, personal mobile on 5GHz Wi-Fi"
+              className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 text-xs"
             />
           </div>
 
           {/* Readonly identity details */}
-          <div className="bg-slate-950/60 rounded-xl p-3 border border-slate-800/80 text-xs space-y-1.5">
+          <div className="bg-slate-950/60 rounded-xl p-3 border border-slate-800/80 text-xs space-y-1">
+            {device.model_name && (
+              <div className="flex justify-between">
+                <span className="text-slate-400">Detected Model:</span>
+                <span className="text-sky-300 font-medium">{device.model_name}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-slate-400">Manufacturer:</span>
               <span className="text-slate-300 font-medium">{device.manufacturer}</span>
@@ -168,10 +222,6 @@ export const DeviceEditModal: React.FC<DeviceEditModalProps> = ({
               <span className="text-slate-300">
                 {device.is_randomized_mac ? 'Private / Randomized (iOS/Android)' : 'Standard IEEE OUI'}
               </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">First Discovered:</span>
-              <span className="text-slate-400">{new Date(device.first_seen).toLocaleString()}</span>
             </div>
           </div>
 

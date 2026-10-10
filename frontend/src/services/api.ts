@@ -47,7 +47,7 @@ export async function triggerScan(subnet?: string, networkInterface?: string): P
 
 export async function patchDevice(
   deviceId: string,
-  data: { custom_name?: string | null; is_trusted?: number; notes?: string | null }
+  data: { custom_name?: string | null; is_trusted?: number; notes?: string | null; device_type?: string }
 ): Promise<Device> {
   const res = await fetch(`${API_BASE}/devices/${deviceId}`, {
     method: 'PATCH',
