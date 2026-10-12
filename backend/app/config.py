@@ -15,7 +15,7 @@ class Settings(BaseSettings):
         description="Comma-separated allowed origins",
     )
 
-    # Safaricom Huawei HG8145V6 defaults
+    # Huawei HG8145V6 defaults
     router_ip: str = Field(default="192.168.100.1", description="Router gateway IP")
     router_port: int = Field(default=443, description="Router web interface port")
     router_protocol: str = Field(default="https", description="Router protocol: https or http")

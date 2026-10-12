@@ -73,3 +73,47 @@
 .animate-status-pulse {
   animation: statusPulse 2s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
+
+/* GPU-Accelerated Topology Animations */
+@keyframes radarSweep {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+@keyframes dashFlow {
+  from {
+    stroke-dashoffset: 40;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes packetPulse {
+  0%, 100% {
+    opacity: 0.9;
+    filter: drop-shadow(0 0 3px currentColor);
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 8px currentColor);
+  }
+}
+
+.animate-radar {
+  animation: radarSweep 2.8s cubic-bezier(0.1, 0.4, 0.2, 1) infinite;
+}
+
+.animate-dash-flow {
+  animation: dashFlow 1.6s linear infinite;
+}
+
+.animate-packet-pulse {
+  animation: packetPulse 1.2s ease-in-out infinite;
+}

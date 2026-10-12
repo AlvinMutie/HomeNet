@@ -3,6 +3,7 @@ import type { Device, DashboardStats, RouterStatus } from '../types';
 import { MetricCard } from '../components/MetricCard';
 import { RouterStatusCard } from '../components/RouterStatusCard';
 import { NetworkCharts } from '../components/NetworkCharts';
+import { NetworkTopologyVisualizer } from '../components/NetworkTopologyVisualizer';
 import { 
   Wifi, 
   ShieldCheck, 
@@ -35,6 +36,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
   devices,
   routerStatus,
   isScanning,
+  onTriggerScan,
   onNavigateToDevices,
   onOpenDiagnostics,
   onEditDevice,
@@ -157,6 +159,15 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           }}
         />
       </div>
+
+      {/* Live Packet Motion & Network Topology Visualizer */}
+      <NetworkTopologyVisualizer
+        devices={devices}
+        routerStatus={routerStatus}
+        isScanning={isScanning}
+        onTriggerScan={onTriggerScan}
+        onEditDevice={onEditDevice}
+      />
 
       {/* Router Status Component */}
       <RouterStatusCard
