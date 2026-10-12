@@ -62,35 +62,38 @@ export const DeviceEditModal: React.FC<DeviceEditModalProps> = ({
   ];
 
   const categories = [
-    { id: 'smartphone', label: 'Phone', icon: <Smartphone className="w-4 h-4 text-sky-400" /> },
+    { id: 'smartphone', label: 'Phone', icon: <Smartphone className="w-4 h-4 text-blue-400" /> },
     { id: 'smart_tv', label: 'Smart TV', icon: <Tv className="w-4 h-4 text-purple-400" /> },
     { id: 'laptop', label: 'Laptop / PC', icon: <Laptop className="w-4 h-4 text-indigo-400" /> },
     { id: 'router', label: 'Gateway', icon: <Router className="w-4 h-4 text-emerald-400" /> },
     { id: 'iot', label: 'IoT Device', icon: <Cpu className="w-4 h-4 text-amber-400" /> },
-    { id: 'unknown', label: 'Other', icon: <QuestionIcon className="w-4 h-4 text-slate-400" /> },
+    { id: 'unknown', label: 'Other', icon: <QuestionIcon className="w-4 h-4 text-zinc-400" /> },
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="bg-[#111317] border border-[#22262f] rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl relative">
+        {/* Specular highlight border on top */}
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+
+        <div className="flex items-center justify-between px-6 py-4.5 border-b border-[#1c1f25]">
           <div>
-            <h3 className="text-base font-bold text-white">Edit Device Details</h3>
-            <p className="text-xs text-slate-400 mt-0.5 font-mono">{device.ip_address} • {device.mac_address || 'No MAC'}</p>
+            <h3 className="text-base font-semibold tracking-tight text-white">Edit Device Identity</h3>
+            <p className="text-xs text-zinc-400 mt-0.5 font-mono">{device.ip_address} • {device.mac_address || 'No MAC'}</p>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-[#181a20] transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[85vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4.5 max-h-[85vh] overflow-y-auto">
           {/* Quick preset name chips */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-              Device Name
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-2">
+              Friendly Device Name
             </label>
             <div className="flex flex-wrap gap-1.5 mb-2.5">
               {quickPresets.map((preset) => (
@@ -101,7 +104,7 @@ export const DeviceEditModal: React.FC<DeviceEditModalProps> = ({
                     setCustomName(preset.label);
                     setDeviceType(preset.type);
                   }}
-                  className="inline-flex items-center space-x-1.5 px-2.5 py-1 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/60 transition-colors"
+                  className="inline-flex items-center space-x-1.5 px-3 py-1 text-xs rounded-full bg-[#16181f] hover:bg-[#20232b] text-zinc-300 border border-[#252832] transition-colors"
                 >
                   {preset.icon}
                   <span>{preset.label}</span>
@@ -112,15 +115,15 @@ export const DeviceEditModal: React.FC<DeviceEditModalProps> = ({
               type="text"
               value={customName}
               onChange={(e) => setCustomName(e.target.value)}
-              placeholder="e.g. Alvin's Phone, Sony BRAVIA TV, Work Laptop"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 text-sm"
+              placeholder="e.g. My Phone, Living Room TV, Work Laptop"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-[#0c0d10] border border-[#1e2127] text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-400 text-xs transition-colors"
             />
           </div>
 
           {/* Device Category Selector */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-              Device Type Category
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-2">
+              Device Category
             </label>
             <div className="grid grid-cols-3 gap-2">
               {categories.map((cat) => (
@@ -130,8 +133,8 @@ export const DeviceEditModal: React.FC<DeviceEditModalProps> = ({
                   onClick={() => setDeviceType(cat.id)}
                   className={`flex items-center space-x-2 p-2.5 rounded-xl border text-xs font-medium transition-all ${
                     deviceType === cat.id
-                      ? 'bg-sky-500/10 border-sky-500/40 text-sky-300 ring-1 ring-sky-500/30'
-                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-850'
+                      ? 'bg-[#181a20] border-zinc-400 text-white shadow-sm'
+                      : 'bg-[#0c0d10] border-[#1e2127] text-zinc-400 hover:bg-[#14161b]'
                   }`}
                 >
                   {cat.icon}
@@ -143,7 +146,7 @@ export const DeviceEditModal: React.FC<DeviceEditModalProps> = ({
 
           {/* Trust status selection */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-2">
               Trust Classification
             </label>
             <div className="grid grid-cols-3 gap-2.5">
@@ -152,13 +155,13 @@ export const DeviceEditModal: React.FC<DeviceEditModalProps> = ({
                 onClick={() => setIsTrusted(1)}
                 className={`flex flex-col items-center justify-center p-2.5 rounded-xl border transition-all text-xs ${
                   isTrusted === 1
-                    ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300 ring-1 ring-emerald-500/30'
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-800'
+                    ? 'bg-[#122b1c] border-[#1d472c] text-[#46a758]'
+                    : 'bg-[#0c0d10] border-[#1e2127] text-zinc-400 hover:bg-[#14161b]'
                 }`}
               >
-                <ShieldCheck className="w-4 h-4 mb-1 text-emerald-400" />
+                <ShieldCheck className="w-4 h-4 mb-1 text-[#46a758]" />
                 <span className="font-semibold">Trusted</span>
-                <span className="text-[10px] text-slate-500 text-center mt-0.5">Known device</span>
+                <span className="text-[10px] text-zinc-500 text-center mt-0.5">Known device</span>
               </button>
 
               <button
@@ -166,13 +169,13 @@ export const DeviceEditModal: React.FC<DeviceEditModalProps> = ({
                 onClick={() => setIsTrusted(2)}
                 className={`flex flex-col items-center justify-center p-2.5 rounded-xl border transition-all text-xs ${
                   isTrusted === 2
-                    ? 'bg-amber-500/10 border-amber-500/40 text-amber-300 ring-1 ring-amber-500/30'
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-800'
+                    ? 'bg-[#2e210e] border-[#4d3615] text-[#f5a623]'
+                    : 'bg-[#0c0d10] border-[#1e2127] text-zinc-400 hover:bg-[#14161b]'
                 }`}
               >
-                <HelpCircle className="w-4 h-4 mb-1 text-amber-400" />
+                <HelpCircle className="w-4 h-4 mb-1 text-[#f5a623]" />
                 <span className="font-semibold">Review</span>
-                <span className="text-[10px] text-slate-500 text-center mt-0.5">Unverified</span>
+                <span className="text-[10px] text-zinc-500 text-center mt-0.5">Unverified</span>
               </button>
 
               <button
@@ -180,63 +183,63 @@ export const DeviceEditModal: React.FC<DeviceEditModalProps> = ({
                 onClick={() => setIsTrusted(0)}
                 className={`flex flex-col items-center justify-center p-2.5 rounded-xl border transition-all text-xs ${
                   isTrusted === 0
-                    ? 'bg-rose-500/10 border-rose-500/40 text-rose-300 ring-1 ring-rose-500/30'
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-800'
+                    ? 'bg-[#2b1214] border-[#4a1c20] text-[#e5484d]'
+                    : 'bg-[#0c0d10] border-[#1e2127] text-zinc-400 hover:bg-[#14161b]'
                 }`}
               >
-                <ShieldAlert className="w-4 h-4 mb-1 text-rose-400" />
+                <ShieldAlert className="w-4 h-4 mb-1 text-[#e5484d]" />
                 <span className="font-semibold">Untrusted</span>
-                <span className="text-[10px] text-slate-500 text-center mt-0.5">Flagged</span>
+                <span className="text-[10px] text-zinc-500 text-center mt-0.5">Flagged</span>
               </button>
             </div>
           </div>
 
           {/* Notes */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
               Notes
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              placeholder="e.g. Bedroom TV, personal mobile on 5GHz Wi-Fi"
-              className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 text-xs"
+              placeholder="e.g. Personal mobile on 5GHz Wi-Fi"
+              className="w-full px-3.5 py-2 rounded-xl bg-[#0c0d10] border border-[#1e2127] text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-400 text-xs transition-colors"
             />
           </div>
 
           {/* Readonly identity details */}
-          <div className="bg-slate-950/60 rounded-xl p-3 border border-slate-800/80 text-xs space-y-1">
+          <div className="bg-[#0c0d10] rounded-xl p-3 border border-[#1b1e24] text-xs space-y-1">
             {device.model_name && (
               <div className="flex justify-between">
-                <span className="text-slate-400">Detected Model:</span>
-                <span className="text-sky-300 font-medium">{device.model_name}</span>
+                <span className="text-zinc-500">Detected Model:</span>
+                <span className="text-white font-medium">{device.model_name}</span>
               </div>
             )}
             <div className="flex justify-between">
-              <span className="text-slate-400">Manufacturer:</span>
-              <span className="text-slate-300 font-medium">{device.manufacturer}</span>
+              <span className="text-zinc-500">Manufacturer:</span>
+              <span className="text-zinc-300 font-medium">{device.manufacturer}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">MAC Type:</span>
-              <span className="text-slate-300">
+              <span className="text-zinc-500">MAC Type:</span>
+              <span className="text-zinc-300 font-mono text-[11px]">
                 {device.is_randomized_mac ? 'Private / Randomized (iOS/Android)' : 'Standard IEEE OUI'}
               </span>
             </div>
           </div>
 
-          <div className="flex items-center justify-end space-x-3 pt-2">
+          <div className="flex items-center justify-end space-x-2.5 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+              className="px-4 h-9 text-xs font-semibold rounded-full text-zinc-400 hover:text-white hover:bg-[#181a20] transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex items-center space-x-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-sky-600 hover:bg-sky-500 text-white transition-colors shadow-sm"
+              className="inline-flex items-center space-x-1.5 px-4 h-9 text-xs font-semibold rounded-full bg-white hover:bg-zinc-200 text-black active:scale-95 transition-all shadow-sm"
             >
               <Save className="w-3.5 h-3.5" />
               <span>{isSubmitting ? 'Saving...' : 'Save Changes'}</span>

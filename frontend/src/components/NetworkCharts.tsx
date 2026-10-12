@@ -20,12 +20,12 @@ interface NetworkChartsProps {
 export const NetworkCharts: React.FC<NetworkChartsProps> = ({ stats, devices }) => {
   // 1. Trust data
   const trustData = [
-    { name: 'Trusted', value: stats.trusted_devices, color: '#10b981' },
-    { name: 'Needs Review', value: stats.review_devices, color: '#f59e0b' },
-    { name: 'Untrusted', value: stats.untrusted_devices, color: '#f43f5e' },
+    { name: 'Trusted', value: stats.trusted_devices, color: '#30a46c' },
+    { name: 'Needs Review', value: stats.review_devices, color: '#f5a623' },
+    { name: 'Untrusted', value: stats.untrusted_devices, color: '#e5484d' },
   ].filter((d) => d.value > 0);
 
-  // 3. Latency distribution data
+  // 2. Latency distribution data
   const latencyBuckets = [
     { range: '< 5ms', count: 0 },
     { range: '5-20ms', count: 0 },
@@ -42,7 +42,7 @@ export const NetworkCharts: React.FC<NetworkChartsProps> = ({ stats, devices }) 
     }
   });
 
-  // 4. Manufacturer breakdown
+  // 3. Manufacturer breakdown
   const mfgData = stats.manufacturers.slice(0, 5).map((m) => ({
     name: m.name.length > 14 ? m.name.substring(0, 14) + '...' : m.name,
     count: m.count,
@@ -51,10 +51,10 @@ export const NetworkCharts: React.FC<NetworkChartsProps> = ({ stats, devices }) 
   const customTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-slate-900 border border-slate-800 px-3 py-2 rounded-lg shadow-xl text-xs">
-          <p className="font-semibold text-white">{payload[0].name || payload[0].payload.name || payload[0].payload.range}</p>
-          <p className="text-sky-400 font-mono mt-0.5">
-            Count: {payload[0].value} device{payload[0].value === 1 ? '' : 's'}
+        <div className="bg-[#111317] border border-[#262a34] px-3.5 py-2 rounded-xl shadow-2xl text-xs backdrop-blur-md">
+          <p className="font-semibold text-white tracking-tight">{payload[0].name || payload[0].payload.name || payload[0].payload.range}</p>
+          <p className="text-zinc-400 font-mono mt-0.5">
+            Count: <span className="text-white font-semibold">{payload[0].value}</span> device{payload[0].value === 1 ? '' : 's'}
           </p>
         </div>
       );
@@ -63,88 +63,113 @@ export const NetworkCharts: React.FC<NetworkChartsProps> = ({ stats, devices }) 
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {/* Trust Distribution Donut */}
-      <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 shadow-sm">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {/* 1. Device Trust Distribution */}
+      <div className="bg-[#111317]/90 border border-[#1e2127] rounded-2xl p-5 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-white">Trust Classification</h3>
-          <span className="text-xs text-slate-400">{stats.total_devices} total</span>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+            Trust Classification
+          </h3>
+          <span className="text-[11px] font-mono text-zinc-400">
+            {stats.total_devices} total
+          </span>
         </div>
-        <div className="h-48">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={trustData.length ? trustData : [{ name: 'No Devices', value: 1, color: '#334155' }]}
-                cx="50%"
-                cy="50%"
-                innerRadius={45}
-                outerRadius={70}
-                paddingAngle={4}
-                dataKey="value"
-              >
-                {trustData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip content={customTooltip} />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="flex justify-center space-x-4 mt-2 text-xs">
-          {trustData.map((d) => (
-            <div key={d.name} className="flex items-center space-x-1.5">
-              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: d.color }} />
-              <span className="text-slate-400">{d.name} ({d.value})</span>
+
+        {trustData.length > 0 ? (
+          <div className="h-48 w-full flex items-center justify-center">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={trustData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={46}
+                  outerRadius={68}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {trustData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} stroke="#111317" strokeWidth={2} />
+                  ))}
+                </Pie>
+                <Tooltip content={customTooltip} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <div className="h-48 flex items-center justify-center text-xs text-zinc-400">
+            No devices classified yet
+          </div>
+        )}
+
+        <div className="flex items-center justify-center space-x-4 mt-2 text-xs">
+          {trustData.map((item) => (
+            <div key={item.name} className="flex items-center space-x-1.5">
+              <span className="size-2 rounded-full" style={{ backgroundColor: item.color }} />
+              <span className="text-zinc-400 text-[11px]">{item.name}</span>
+              <span className="font-mono text-zinc-300 text-[11px] font-medium">({item.value})</span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Latency Breakdown Bar Chart */}
-      <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 shadow-sm">
+      {/* 2. Latency Distribution */}
+      <div className="bg-[#111317]/90 border border-[#1e2127] rounded-2xl p-5 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-white">Ping Latency Profile</h3>
-          <span className="text-xs text-slate-400">Responding devices</span>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+            Ping Latency Spread
+          </h3>
+          <span className="text-[11px] font-mono text-zinc-400">
+            Active devices
+          </span>
         </div>
-        <div className="h-48">
+
+        <div className="h-48 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={latencyBuckets} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <XAxis dataKey="range" stroke="#64748b" fontSize={11} tickLine={false} />
-              <YAxis stroke="#64748b" fontSize={11} tickLine={false} allowDecimals={false} />
-              <Tooltip content={customTooltip} />
-              <Bar dataKey="count" fill="#38bdf8" radius={[4, 4, 0, 0]} />
+            <BarChart data={latencyBuckets} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+              <XAxis dataKey="range" stroke="#687076" fontSize={10} tickLine={false} axisLine={false} />
+              <YAxis stroke="#687076" fontSize={10} allowDecimals={false} tickLine={false} axisLine={false} />
+              <Tooltip content={customTooltip} cursor={{ fill: 'rgba(255, 255, 255, 0.03)' }} />
+              <Bar dataKey="count" fill="#4668f2" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
-        <p className="text-[11px] text-slate-500 text-center mt-2">
-          Faster round-trip times indicate strong Wi-Fi signal or Ethernet
+
+        <p className="text-[11px] text-zinc-400 text-center mt-2">
+          ICMP round-trip latency measured from local host
         </p>
       </div>
 
-      {/* Top Manufacturers Bar Chart */}
-      <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 shadow-sm">
+      {/* 3. Top Manufacturers */}
+      <div className="bg-[#111317]/90 border border-[#1e2127] rounded-2xl p-5 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-white">Device Vendors (IEEE OUI)</h3>
-          <span className="text-xs text-slate-400">Identified</span>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+            Hardware Vendors
+          </h3>
+          <span className="text-[11px] font-mono text-zinc-400">
+            IEEE OUI Registry
+          </span>
         </div>
-        <div className="h-48">
-          {mfgData.length ? (
+
+        {mfgData.length > 0 ? (
+          <div className="h-48 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={mfgData} layout="vertical" margin={{ top: 5, right: 15, left: 20, bottom: 0 }}>
-                <XAxis type="number" stroke="#64748b" fontSize={11} allowDecimals={false} />
-                <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={11} tickLine={false} width={80} />
-                <Tooltip content={customTooltip} />
-                <Bar dataKey="count" fill="#818cf8" radius={[0, 4, 4, 0]} />
+              <BarChart data={mfgData} layout="vertical" margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
+                <XAxis type="number" stroke="#687076" fontSize={10} tickLine={false} axisLine={false} allowDecimals={false} />
+                <YAxis dataKey="name" type="category" stroke="#687076" fontSize={10} tickLine={false} axisLine={false} width={80} />
+                <Tooltip content={customTooltip} cursor={{ fill: 'rgba(255, 255, 255, 0.03)' }} />
+                <Bar dataKey="count" fill="#30a46c" radius={[0, 6, 6, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          ) : (
-            <div className="flex items-center justify-center h-full text-xs text-slate-500">
-              No manufacturer data yet
-            </div>
-          )}
-        </div>
-        <p className="text-[11px] text-slate-500 text-center mt-2">
-          Private/randomized MACs are counted under Unknown for privacy
+          </div>
+        ) : (
+          <div className="h-48 flex items-center justify-center text-xs text-zinc-400">
+            No vendor data available
+          </div>
+        )}
+
+        <p className="text-[11px] text-zinc-400 text-center mt-2">
+          Resolved via hardware MAC OUI prefixes
         </p>
       </div>
     </div>

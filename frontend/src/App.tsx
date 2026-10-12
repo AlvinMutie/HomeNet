@@ -124,7 +124,7 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#080c14] text-slate-100 flex flex-col font-sans selection:bg-sky-500/30 selection:text-white">
+    <div className="min-h-screen bg-[#090a0d] text-zinc-100 flex flex-col font-sans selection:bg-[#4668f2]/30 selection:text-white expo-glow-bg">
       {/* Top Navigation & Status Bar */}
       <Header
         activeTab={activeTab}
@@ -136,25 +136,25 @@ export function App() {
         respondingCount={devices.filter((d) => d.is_active).length}
       />
 
-      {/* Toast Notification Floating Banner */}
+      {/* Floating Toast Notification (Expo style) */}
       {toast && (
-        <div className="fixed bottom-5 right-5 z-50 animate-in slide-in-from-bottom-3 duration-200">
+        <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-3 duration-200">
           <div
-            className={`flex items-center space-x-2.5 px-4 py-3 rounded-xl shadow-2xl border text-xs font-medium backdrop-blur-md ${
+            className={`flex items-center space-x-3 px-4 py-3 rounded-2xl shadow-2xl border text-xs font-medium backdrop-blur-md ${
               toast.type === 'success'
-                ? 'bg-emerald-950/90 text-emerald-200 border-emerald-500/30 shadow-emerald-950/50'
+                ? 'bg-[#111317]/95 text-emerald-300 border-[#1d472c] shadow-black/60'
                 : toast.type === 'error'
-                ? 'bg-rose-950/90 text-rose-200 border-rose-500/30 shadow-rose-950/50'
-                : 'bg-slate-900/90 text-sky-200 border-sky-500/30 shadow-black/50'
+                ? 'bg-[#111317]/95 text-rose-300 border-[#4a1c20] shadow-black/60'
+                : 'bg-[#111317]/95 text-zinc-200 border-[#232731] shadow-black/60'
             }`}
           >
             {toast.type === 'success' && <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />}
             {toast.type === 'error' && <AlertTriangle className="w-4 h-4 text-rose-400 flex-shrink-0" />}
-            {toast.type === 'info' && <Info className="w-4 h-4 text-sky-400 flex-shrink-0" />}
+            {toast.type === 'info' && <Info className="w-4 h-4 text-zinc-300 flex-shrink-0" />}
             <span>{toast.message}</span>
             <button
               onClick={() => setToast(null)}
-              className="text-slate-400 hover:text-white ml-2 p-0.5"
+              className="text-zinc-400 hover:text-white ml-2 p-0.5 rounded-md hover:bg-[#181a20]"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -168,23 +168,23 @@ export function App() {
           <div className="space-y-6 animate-pulse">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-28 rounded-xl bg-slate-900/70 border border-slate-800" />
+                <div key={i} className="h-28 rounded-2xl bg-[#111317] border border-[#1e2127]" />
               ))}
             </div>
-            <div className="h-44 rounded-2xl bg-slate-900/70 border border-slate-800" />
-            <div className="h-72 rounded-2xl bg-slate-900/70 border border-slate-800" />
+            <div className="h-44 rounded-2xl bg-[#111317] border border-[#1e2127]" />
+            <div className="h-72 rounded-2xl bg-[#111317] border border-[#1e2127]" />
           </div>
         ) : error ? (
-          <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-8 text-center max-w-lg mx-auto my-12">
+          <div className="bg-[#111317] border border-[#3b171c] rounded-2xl p-8 text-center max-w-lg mx-auto my-12 shadow-sm">
             <AlertTriangle className="w-10 h-10 text-rose-400 mx-auto mb-3" />
-            <h3 className="text-base font-bold text-white">Backend Connection Error</h3>
+            <h3 className="text-base font-semibold text-white tracking-tight">Backend Connection Error</h3>
             <p className="text-xs text-rose-300/90 mt-1 mb-4 leading-relaxed">{error}</p>
-            <p className="text-xs text-slate-400 mb-6">
-              Ensure the HomeNet FastAPI backend is running on <code className="text-sky-300 font-mono">http://127.0.0.1:8000</code>.
+            <p className="text-xs text-zinc-400 mb-6">
+              Ensure the HomeNet FastAPI backend is running on <code className="text-zinc-200 font-mono bg-[#0c0d10] px-1.5 py-0.5 rounded border border-[#1e2127]">http://127.0.0.1:8000</code>.
             </p>
             <button
               onClick={() => loadData(true)}
-              className="px-4 py-2 text-xs font-semibold rounded-xl bg-rose-600 hover:bg-rose-500 text-white transition-colors"
+              className="px-4 py-2 text-xs font-semibold rounded-full bg-white hover:bg-zinc-200 text-black active:scale-95 transition-all shadow-sm"
             >
               Retry Connection
             </button>
@@ -226,15 +226,19 @@ export function App() {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-900 py-6 text-center text-xs text-slate-400">
+      {/* Expo-style Minimalist Footer */}
+      <footer className="border-t border-[#181a20] py-6 text-xs text-zinc-400">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p>
-            HomeNet Manager • Safaricom Huawei HG8145V6 Fibre Gateway Dashboard
-          </p>
-          <p className="text-slate-400">
-            Kali Linux Environment • Unprivileged ICMP &amp; Kernel ARP Discovery
-          </p>
+          <div className="flex items-center space-x-2">
+            <span className="font-semibold text-zinc-300">HomeNet Manager</span>
+            <span>•</span>
+            <span>Huawei HG8145V6 Fibre Gateway Dashboard</span>
+          </div>
+          <div className="flex items-center space-x-3 text-zinc-400 font-mono text-[11px]">
+            <span>Kali Linux</span>
+            <span>•</span>
+            <span>Kernel ARP &amp; ICMP Engine</span>
+          </div>
         </div>
       </footer>
 

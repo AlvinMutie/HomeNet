@@ -99,16 +99,13 @@ async def update_device(device_id: str, patch_data: DevicePatchRequest):
 @router.post("/{device_id}/block")
 async def block_device(
     device_id: str,
-    body: BlockRequest,
+    body: Optional[BlockRequest] = None,
 ):
     """
     Block a device by adding its MAC address to the Huawei HG8145V6 Wi-Fi deny list.
 
-    Requires your router admin credentials. The router uses SHA-256 challenge-response
-    authentication — your password is never sent in plaintext.
-
-    Effect: The device is deauthenticated from Wi-Fi within seconds and cannot reconnect
-    until you unblock it.
+    Requires your router admin credentials. If no credentials are supplied,
+    returns HTTP 501 explaining that router hardware authentication is required.
     """
     device = get_device_by_id(device_id)
     if not device:
@@ -117,12 +114,33 @@ async def block_device(
     mac = device.get("mac_address")
     name = device.get("custom_name") or device.get("hostname") or device.get("ip_address")
 
+    if not body or not body.router_password:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail={
+                "status": "unavailable_requires_router_auth",
+                "message": (
+                    "Device blocking cannot be safely performed via local ARP scans. "
+                    "Authoritative hardware MAC filtering requires direct Huawei HG8145V6 "
+                    "router credentials to update the Wi-Fi deny list."
+                ),
+                "device_id": device_id,
+                "mac_address": mac,
+                "router_gateway": "https://192.168.100.1",
+                "how_to_block_safely": [
+                    "Log in to Huawei HG8145V6 router web portal at https://192.168.100.1",
+                    "Navigate to Security -> MAC Filter Configuration",
+                    f"Add target MAC address {mac or 'device-mac'} to Deny List / Blacklist",
+                ],
+            },
+        )
+
     if not mac:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={
                 "error": "Cannot block device: No MAC address is known for this device.",
-                "tip": "Devices using private/randomized MACs cannot be reliably blocked by MAC address since they change their MAC on each connection."
+                "tip": "Devices using private/randomized MACs cannot be reliably blocked by MAC address."
             }
         )
 

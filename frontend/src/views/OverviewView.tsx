@@ -35,7 +35,6 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
   devices,
   routerStatus,
   isScanning,
-  onTriggerScan,
   onNavigateToDevices,
   onOpenDiagnostics,
   onEditDevice,
@@ -54,13 +53,13 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
       case 'smart_tv':
         return <Tv className="w-3.5 h-3.5 text-purple-400" />;
       case 'smartphone':
-        return <Smartphone className="w-3.5 h-3.5 text-sky-400" />;
+        return <Smartphone className="w-3.5 h-3.5 text-blue-400" />;
       case 'laptop':
         return <Laptop className="w-3.5 h-3.5 text-indigo-400" />;
       case 'router':
         return <RouterIcon className="w-3.5 h-3.5 text-emerald-400" />;
       default:
-        return <Cpu className="w-3.5 h-3.5 text-slate-400" />;
+        return <Cpu className="w-3.5 h-3.5 text-zinc-400" />;
     }
   };
 
@@ -68,16 +67,48 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Expo-style Subnet Hero Banner */}
+      <div className="relative rounded-2xl border border-[#1e2127] bg-[#111317]/90 p-6 overflow-hidden shadow-sm">
+        {/* Subtle radial glow */}
+        <div className="absolute top-0 right-0 -mt-12 -mr-12 w-96 h-96 bg-[#4668f2]/10 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1.5">
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#16181f] border border-[#252832] text-[11px] font-medium text-zinc-300">
+              <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Network Console</span>
+              <span className="text-zinc-400">•</span>
+              <span className="font-mono text-zinc-400">192.168.100.0/24</span>
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-white">
+              Home Network Overview
+            </h1>
+            <p className="text-xs text-zinc-400 max-w-xl leading-relaxed">
+              Real-time device discovery and telemetry powered by multi-signal fingerprinting and local kernel ARP resolution.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2.5 self-start md:self-auto">
+            <button
+              onClick={onNavigateToDevices}
+              className="inline-flex items-center gap-1.5 px-4 h-9 rounded-full bg-white hover:bg-zinc-200 text-black text-xs font-semibold active:scale-95 transition-all shadow-sm"
+            >
+              <span>View All Devices</span>
+              <ArrowRight className="w-3.5 h-3.5 text-black" />
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Telemetry Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title="Active Devices"
           value={stats ? stats.responding_devices : '...'}
           subtitle={`${stats ? stats.total_devices : 0} total discovered in DB`}
-          icon={<Wifi className="w-5 h-5" />}
-          iconBgColor="bg-sky-500/10 text-sky-400 border-sky-500/20"
+          icon={<Wifi className="w-4 h-4" />}
           badge={{
-            text: `${stats ? Math.round((stats.responding_devices / (stats.total_devices || 1)) * 100) : 0}% Active`,
+            text: `${stats ? Math.round((stats.responding_devices / (stats.total_devices || 1)) * 100) : 0}% Online`,
             variant: 'info',
           }}
         />
@@ -86,8 +117,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           title="Trusted Devices"
           value={stats ? stats.trusted_devices : '...'}
           subtitle="Known personal & family equipment"
-          icon={<ShieldCheck className="w-5 h-5" />}
-          iconBgColor="bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+          icon={<ShieldCheck className="w-4 h-4" />}
           badge={{
             text: 'Classified',
             variant: 'success',
@@ -95,197 +125,149 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
         />
 
         <MetricCard
-          title="Needs Review / Unknown"
+          title="Review & Unknown"
           value={stats ? stats.review_devices + stats.untrusted_devices : '...'}
           subtitle={`${stats ? stats.review_devices : 0} unassigned, ${stats ? stats.untrusted_devices : 0} untrusted`}
-          icon={<HelpCircle className="w-5 h-5" />}
-          iconBgColor="bg-amber-500/10 text-amber-400 border-amber-500/20"
+          icon={<HelpCircle className="w-4 h-4" />}
           badge={{
-            text: 'Needs Review',
-            variant: 'warning',
+            text: stats && stats.review_devices > 0 ? 'Pending' : 'Clear',
+            variant: stats && stats.review_devices > 0 ? 'warning' : 'neutral',
           }}
         />
 
         <MetricCard
-          title="Last Network Scan"
-          value={
-            stats?.last_scan
-              ? `${stats.last_scan.duration_seconds}s`
-              : 'Standby'
-          }
+          title="Last Sweep"
+          value={stats?.last_scan ? stats.last_scan.duration_seconds.toFixed(1) + 's' : 'Ready'}
           subtitle={
-            stats?.last_scan?.scan_time
-              ? new Date(stats.last_scan.scan_time).toLocaleTimeString()
-              : 'Scan to refresh'
+            stats?.last_scan
+              ? `${new Date(stats.last_scan.scan_time).toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}`
+              : 'Click Scan to probe'
           }
-          icon={<Clock className="w-5 h-5" />}
-          iconBgColor="bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
+          icon={<Clock className="w-4 h-4" />}
           badge={{
-            text: stats?.last_scan?.subnet || '192.168.100.0/24',
-            variant: 'neutral',
+            text: isScanning ? 'Running' : 'Sweep OK',
+            variant: isScanning ? 'warning' : 'neutral',
           }}
         />
       </div>
 
-      {/* Router Gateway Hardware & Internet Telemetry */}
+      {/* Router Status Component */}
       <RouterStatusCard
         routerStatus={routerStatus}
         onOpenDiagnostics={onOpenDiagnostics}
       />
 
-      {/* Scan Status Banner */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-xl px-5 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-        <div className="flex items-center space-x-2 text-slate-300">
-          <span className="w-2 h-2 rounded-full bg-sky-400 animate-pulse" />
-          <span>Local subnet discovery:</span>
-          <code className="text-sky-300 bg-slate-950 px-2 py-0.5 rounded font-mono">
-            {stats?.last_scan?.subnet || '192.168.100.0/24'} (wlan0)
-          </code>
-          <span className="text-slate-500">•</span>
-          <span className="text-slate-400">
-            {stats?.last_scan?.devices_found ?? devices.length} responding devices found
-          </span>
-        </div>
-        <button
-          onClick={onTriggerScan}
-          disabled={isScanning}
-          className="text-sky-400 hover:text-sky-300 font-medium inline-flex items-center space-x-1 transition-colors self-start sm:self-auto"
-        >
-          <span>{isScanning ? 'Scan in progress...' : 'Trigger rescan now'}</span>
-          <ArrowRight className="w-3.5 h-3.5" />
-        </button>
-      </div>
-
-      {/* Network Analytics Visualizations */}
+      {/* Visual Telemetry Charts */}
       {stats && <NetworkCharts stats={stats} devices={devices} />}
 
-      {/* Recently Discovered / Active Devices Quick Table */}
-      <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
+      {/* Recently Discovered / Active Devices Quick List (Expo style) */}
+      <div className="bg-[#111317]/90 border border-[#1e2127] rounded-2xl overflow-hidden shadow-sm">
+        <div className="p-5 border-b border-[#1c1f25] flex items-center justify-between">
           <div>
-            <h3 className="text-base font-bold text-white">Recently Active Devices</h3>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Discovered via ARP sweep on your Safaricom home network
+            <h2 className="text-sm font-semibold text-white tracking-tight">Active Devices Feed</h2>
+            <p className="text-xs text-zinc-400 mt-0.5">
+              Recently responding equipment on local subnet
             </p>
           </div>
           <button
             onClick={onNavigateToDevices}
-            className="inline-flex items-center space-x-1.5 text-xs font-semibold text-sky-400 hover:text-sky-300 transition-colors"
+            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-[#171920] hover:bg-[#20232b] text-zinc-300 border border-[#242832] text-xs font-semibold active:scale-95 transition-all"
           >
-            <span>View All Devices ({devices.length})</span>
-            <ArrowRight className="w-4 h-4" />
+            <span>Manage All ({devices.length})</span>
+            <ArrowRight className="w-3 h-3" />
           </button>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider text-[11px]">
-                <th className="pb-3 pl-2">Device Name / Host</th>
-                <th className="pb-3">IP Address</th>
-                <th className="pb-3">MAC Address</th>
-                <th className="pb-3">Manufacturer</th>
-                <th className="pb-3">Status</th>
-                <th className="pb-3">Trust</th>
-                <th className="pb-3 text-right pr-2">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/60 text-slate-300">
-              {recentActiveDevices.map((device) => {
-                const displayName = device.custom_name || device.hostname || device.ip_address;
-                const isTrusted = device.is_trusted === 1;
-                const isUntrusted = device.is_trusted === 0;
+        <div className="divide-y divide-[#1b1e24]">
+          {recentActiveDevices.length === 0 ? (
+            <div className="p-8 text-center text-xs text-zinc-400">
+              No devices discovered yet. Click <strong className="text-zinc-200">Scan Subnet</strong> in the navigation header to start probing.
+            </div>
+          ) : (
+            recentActiveDevices.map((device) => {
+              const displayName = device.custom_name || device.hostname || device.ip_address;
+              const isTrusted = device.is_trusted === 1;
+              const isUntrusted = device.is_trusted === 0;
 
-                return (
-                  <tr key={device.id} className="hover:bg-slate-800/40 transition-colors group">
-                    <td className="py-3 pl-2">
-                      <div className="flex items-center space-x-2.5">
-                        <div className="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700/80 flex items-center justify-center flex-shrink-0">
-                          {getDeviceIcon(device)}
-                        </div>
-                        <div>
-                          <div className="flex items-center space-x-2">
-                            <span className="font-semibold text-white">{displayName}</span>
-                            {device.custom_name && device.hostname && (
-                              <span className="text-[10px] text-slate-500 font-mono">({device.hostname})</span>
-                            )}
-                          </div>
-                          {device.model_name && (
-                            <span className="text-[10px] text-sky-400 font-mono block">
-                              {device.model_name}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 font-mono text-sky-300">
-                      <div className="flex items-center space-x-1.5">
-                        <span>{device.ip_address}</span>
-                        <button
-                          onClick={(e) => copyToClipboard(device.ip_address, e)}
-                          className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-slate-300 transition-opacity p-0.5"
-                          title="Copy IP"
-                        >
-                          {copiedIp === device.ip_address ? (
-                            <Check className="w-3 h-3 text-emerald-400" />
-                          ) : (
-                            <Copy className="w-3 h-3" />
-                          )}
-                        </button>
-                      </div>
-                    </td>
-                    <td className="py-3 font-mono text-slate-400">
-                      {device.mac_address || <span className="text-slate-600">N/A</span>}
-                    </td>
-                    <td className="py-3">
-                      <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-medium">
-                        {device.manufacturer}
-                      </span>
-                    </td>
-                    <td className="py-3">
-                      {device.is_active ? (
-                        <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-medium border border-emerald-500/20">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                          <span>Responding {device.latency_ms ? `(${device.latency_ms.toFixed(1)}ms)` : ''}</span>
+              return (
+                <div
+                  key={device.id}
+                  className="p-4 flex items-center justify-between hover:bg-[#16181f]/80 transition-colors gap-3"
+                >
+                  <div className="flex items-center space-x-3.5 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-[#16181f] border border-[#232731] flex items-center justify-center flex-shrink-0">
+                      {getDeviceIcon(device)}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs font-semibold text-white truncate">
+                          {displayName}
                         </span>
+                        {device.custom_name && device.hostname && (
+                          <span className="text-[11px] text-zinc-400 font-mono hidden sm:inline">
+                            ({device.hostname})
+                          </span>
+                        )}
+                        {isTrusted && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#122b1c] text-[#46a758] border border-[#1d472c] font-medium">
+                            Trusted
+                          </span>
+                        )}
+                        {isUntrusted && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#2b1214] text-[#e5484d] border border-[#4a1c20] font-medium">
+                            Untrusted
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center space-x-2 text-[11px] text-zinc-400 mt-0.5">
+                        <span className="truncate">{device.manufacturer || 'Unknown Vendor'}</span>
+                        <span>•</span>
+                        <span className="font-mono text-zinc-400">{device.mac_address || 'No MAC'}</span>
+                        {device.is_randomized_mac && (
+                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-[#181a20] text-zinc-400 border border-[#242730]">
+                            Private MAC
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2 flex-shrink-0">
+                    {/* IP Badge with Copy */}
+                    <button
+                      onClick={(e) => copyToClipboard(device.ip_address, e)}
+                      className="px-2.5 py-1 rounded-lg bg-[#0c0d10] hover:bg-[#16181f] border border-[#1e2127] text-zinc-200 font-mono text-[11px] flex items-center space-x-1.5 transition-colors"
+                      title="Copy IP Address"
+                    >
+                      <span>{device.ip_address}</span>
+                      {copiedIp === device.ip_address ? (
+                        <Check className="w-3 h-3 text-emerald-400" />
                       ) : (
-                        <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-medium">
-                          <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
-                          <span>Offline</span>
-                        </span>
+                        <Copy className="w-3 h-3 text-zinc-400" />
                       )}
-                    </td>
-                    <td className="py-3">
-                      {isTrusted && (
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
-                          Trusted
-                        </span>
-                      )}
-                      {isUntrusted && (
-                        <span className="px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 font-medium">
-                          Untrusted
-                        </span>
-                      )}
-                      {!isTrusted && !isUntrusted && (
-                        <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-medium">
-                          Review
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3 text-right pr-2">
-                      <button
-                        onClick={() => onEditDevice(device)}
-                        className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
-                        title="Edit Friendly Name & Trust"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                    </button>
+
+                    {/* Latency */}
+                    <span className="text-[11px] font-mono text-zinc-400 hidden sm:inline">
+                      {device.latency_ms !== null ? `${device.latency_ms.toFixed(1)}ms` : '—'}
+                    </span>
+
+                    {/* Edit Friendly Name */}
+                    <button
+                      onClick={() => onEditDevice(device)}
+                      className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-[#181a20] transition-colors"
+                      title="Edit device name & trust level"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
     </div>
