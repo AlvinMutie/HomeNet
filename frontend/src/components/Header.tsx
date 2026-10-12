@@ -155,12 +155,14 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <HardDrive className="w-3.5 h-3.5" />
               <span>Devices</span>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold ${
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-medium ${
                 activeTab === 'devices' 
-                  ? 'bg-[#2b2f38] text-white' 
-                  : 'bg-[#17191f] text-zinc-400 border border-[#232630]'
+                  ? 'bg-[#2b2f38] text-emerald-400' 
+                  : 'bg-[#17191f] text-zinc-300 border border-[#232630]'
               }`}>
-                {respondingCount}/{deviceCount}
+                <span className="text-emerald-400 font-semibold">{respondingCount} active</span>
+                <span className="text-zinc-500 mx-1">•</span>
+                <span className="text-zinc-400">{deviceCount} known</span>
               </span>
             </button>
 

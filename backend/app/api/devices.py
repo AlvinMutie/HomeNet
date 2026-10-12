@@ -12,8 +12,9 @@ from backend.app.database import (
     get_device_by_id,
     update_device_metadata,
     get_connection,
+    prune_inactive_devices,
 )
-from backend.app.services.scanner import NetworkScanner
+from backend.app.services.scanner import NetworkScanner, scan_lock
 from backend.app.services.router_auth import block_device_on_router, unblock_device_on_router
 
 router = APIRouter(prefix="/devices", tags=["Devices"])
@@ -64,7 +65,8 @@ async def scan_local_network(scan_req: Optional[ScanRequest] = None):
         subnet = scan_req.subnet if scan_req else None
         interface = scan_req.interface if scan_req else None
         scanner = NetworkScanner(subnet=subnet, interface=interface)
-        result = await scanner.scan()
+        async with scan_lock:
+            result = await scanner.scan()
         return result
     except ValueError as ve:
         raise HTTPException(
@@ -216,3 +218,19 @@ async def delete_device(device_id: str):
         return {"status": "success", "message": "Device record removed"}
     finally:
         conn.close()
+
+
+@router.post("/prune")
+async def prune_devices_endpoint(
+    older_than_hours: Optional[float] = Query(None, description="Only delete devices offline for longer than this many hours. If omitted or 0, deletes all currently offline devices.")
+):
+    """
+    Remove offline/inactive device records from the database to eliminate ghost/duplicate devices.
+    """
+    deleted = prune_inactive_devices(older_than_hours=older_than_hours)
+    return {
+        "status": "success",
+        "deleted_count": deleted,
+        "message": f"Successfully removed {deleted} offline device record(s)."
+    }
+

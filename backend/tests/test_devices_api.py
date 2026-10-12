@@ -110,3 +110,25 @@ def test_device_block_endpoint_safety(client: TestClient):
     err_data = block_res.json()["detail"]
     assert "unavailable_requires_router_auth" in err_data["status"]
     assert "Huawei HG8145V6" in err_data["message"]
+
+
+def test_prune_endpoint(client: TestClient):
+    # Insert an offline device
+    upsert_scanned_device(
+        device_id="dev-to-prune",
+        ip_address="192.168.100.99",
+        mac_address="55:66:77:88:99:00",
+        hostname="ghost-phone",
+        manufacturer="Xiaomi",
+        latency_ms=10.0,
+        is_randomized_mac=False,
+    )
+    from backend.app.database import mark_devices_inactive_except
+    mark_devices_inactive_except([]) # mark all inactive
+
+    prune_res = client.post("/api/devices/prune")
+    assert prune_res.status_code == 200
+    data = prune_res.json()
+    assert data["status"] == "success"
+    assert data["deleted_count"] >= 1
+

@@ -6,7 +6,8 @@ import {
   fetchRouterStatus, 
   triggerScan, 
   patchDevice, 
-  deleteDevice 
+  deleteDevice,
+  pruneInactiveDevices 
 } from './services/api';
 import { Header } from './components/Header';
 import { OverviewView } from './views/OverviewView';
@@ -123,6 +124,16 @@ export function App() {
     }
   };
 
+  const handlePruneDevices = async (olderThanHours?: number) => {
+    try {
+      const res = await pruneInactiveDevices(olderThanHours);
+      showToast(`Cleaned up ${res.deleted_count} offline device record(s).`, 'success');
+      await loadData(false);
+    } catch (err: any) {
+      showToast(`Error pruning devices: ${err.message}`, 'error');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#090a0d] text-zinc-100 flex flex-col font-sans selection:bg-[#4668f2]/30 selection:text-white expo-glow-bg">
       {/* Top Navigation & Status Bar */}
@@ -212,6 +223,7 @@ export function App() {
                 onEditDevice={(device) => setEditingDevice(device)}
                 onBlockDevice={(device) => setBlockingDevice(device)}
                 onDeleteDevice={handleDeleteDevice}
+                onPruneDevices={handlePruneDevices}
               />
             )}
 

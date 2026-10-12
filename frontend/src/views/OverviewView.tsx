@@ -103,13 +103,17 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
       {/* Telemetry Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
-          title="Active Devices"
+          title="Connected Right Now"
           value={stats ? stats.responding_devices : '...'}
-          subtitle={`${stats ? stats.total_devices : 0} total discovered in DB`}
+          subtitle={
+            stats && stats.offline_devices > 0
+              ? `${stats.offline_devices} offline in history • ${stats.total_devices} total`
+              : `${stats ? stats.total_devices : 0} total devices in network`
+          }
           icon={<Wifi className="w-4 h-4" />}
           badge={{
-            text: `${stats ? Math.round((stats.responding_devices / (stats.total_devices || 1)) * 100) : 0}% Online`,
-            variant: 'info',
+            text: `${stats ? stats.responding_devices : 0} Online`,
+            variant: 'success',
           }}
         />
 

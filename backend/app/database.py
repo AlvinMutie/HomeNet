@@ -1,7 +1,7 @@
 import sqlite3
 import logging
 from typing import List, Optional, Dict, Any
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from backend.app.config import settings
 
@@ -217,6 +217,34 @@ def mark_devices_inactive_except(active_ids: List[str]):
                     f"UPDATE devices SET is_active = 0, latency_ms = NULL WHERE id NOT IN ({placeholders})",
                     active_ids
                 )
+    finally:
+        conn.close()
+
+
+def prune_inactive_devices(older_than_hours: Optional[float] = None) -> int:
+    """
+    Remove inactive device records from the database.
+    If older_than_hours is specified, only removes devices offline for more than X hours.
+    If older_than_hours is None or 0, removes all currently offline devices (is_active = 0).
+    Never removes the gateway router.
+    Returns the number of deleted records.
+    """
+    conn = get_connection()
+    try:
+        with conn:
+            query = "DELETE FROM devices WHERE is_active = 0 AND ip_address != ?"
+            params: List[Any] = [settings.router_ip]
+
+            if older_than_hours is not None and older_than_hours > 0:
+                cutoff_dt = datetime.now(timezone.utc) - timedelta(hours=older_than_hours)
+                cutoff_iso = cutoff_dt.isoformat()
+                query += " AND last_seen < ?"
+                params.append(cutoff_iso)
+
+            cursor = conn.execute(query, params)
+            deleted_count = cursor.rowcount
+            logger.info(f"Pruned {deleted_count} inactive device records (older_than_hours={older_than_hours}).")
+            return deleted_count
     finally:
         conn.close()
 

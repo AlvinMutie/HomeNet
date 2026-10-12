@@ -70,6 +70,20 @@ export async function deleteDevice(deviceId: string): Promise<void> {
   }
 }
 
+export async function pruneInactiveDevices(olderThanHours?: number): Promise<{ deleted_count: number; message: string }> {
+  const params = new URLSearchParams();
+  if (olderThanHours !== undefined) {
+    params.append('older_than_hours', olderThanHours.toString());
+  }
+  const res = await fetch(`${API_BASE}/devices/prune?${params.toString()}`, {
+    method: 'POST',
+  });
+  if (!res.ok) {
+    throw new Error('Failed to prune offline devices');
+  }
+  return res.json();
+}
+
 export async function fetchRouterStatus(): Promise<RouterStatus> {
   const res = await fetch(`${API_BASE}/router/status`);
   if (!res.ok) {

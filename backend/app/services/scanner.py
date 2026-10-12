@@ -18,6 +18,7 @@ from backend.app.database import (
 )
 
 logger = logging.getLogger("homenet.scanner")
+scan_lock = asyncio.Lock()
 
 
 def parse_proc_net_arp() -> Dict[str, Dict[str, str]]:
@@ -118,33 +119,33 @@ def get_local_interface_info(interface: str) -> Dict[str, Optional[str]]:
 async def ping_single_host(
     ip: str,
     semaphore: asyncio.Semaphore,
-    timeout_sec: float = 1.0
+    timeout_sec: float = 1.5
 ) -> Optional[Dict[str, Any]]:
     """
-    Ping a single host with strict 1s deadline.
+    Ping a single host with dual-probe (count=2, deadline 2s).
+    Sending 2 packets ensures sleeping phones (iOS power save / Android Doze)
+    wake their Wi-Fi radio on packet 1 and answer on packet 2.
     Returns dict with latency_ms and ttl if responding, else None.
     """
     async with semaphore:
         try:
-            # -c 1 (1 count), -w 1 (deadline 1 sec), -W 1 (wait 1 sec)
             proc = await asyncio.create_subprocess_exec(
-                "ping", "-c", "1", "-w", "1", "-W", "1", ip,
+                "ping", "-c", "2", "-w", "2", "-W", "1", ip,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
-            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=timeout_sec + 0.5)
+            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=timeout_sec + 1.0)
             if proc.returncode == 0:
                 out = stdout.decode("utf-8", errors="ignore")
                 latency = None
                 ttl = None
-                match = re.search(r"time=([\d\.]+)\s*ms", out)
-                if match:
-                    latency = float(match.group(1))
+                avg_match = re.search(r"rtt [^=]+=\s*[\d\.]+/([\d\.]+)/", out)
+                if avg_match:
+                    latency = float(avg_match.group(1))
                 else:
-                    avg_match = re.search(r"rtt [^=]+=\s*[\d\.]+/([\d\.]+)/", out)
-                    if avg_match:
-                        latency = float(avg_match.group(1))
-                # Extract TTL for OS fingerprinting
+                    match = re.search(r"time=([\d\.]+)\s*ms", out)
+                    if match:
+                        latency = float(match.group(1))
                 ttl_match = re.search(r"ttl=([\d]+)", out, re.IGNORECASE)
                 if ttl_match:
                     ttl = int(ttl_match.group(1))
@@ -245,16 +246,22 @@ class NetworkScanner:
                     "state": "LOCAL",
                 }
 
-        # Discover devices: all hosts that responded to ping OR have a REACHABLE entry in ARP
+        # Discover devices: Only include hosts that ACTUALLY responded to ping,
+        # the local machine itself, or have a strictly REACHABLE / PERMANENT ARP entry.
+        # This prevents stale/disconnected cache entries from being falsely reported as active.
+        active_target_ips = set(responding_ips.keys())
+        if local_host.get("ip"):
+            active_target_ips.add(local_host["ip"])
+
+        for ip, arp_data in all_arp_entries.items():
+            if ip in host_ips and arp_data.get("state") in ("REACHABLE", "PERMANENT", "LOCAL"):
+                active_target_ips.add(ip)
+
         discovered_devices: List[Dict[str, Any]] = []
         active_db_ids: List[str] = []
 
-        all_target_ips = set(responding_ips.keys()).union(
-            [ip for ip, data in all_arp_entries.items() if ip in host_ips]
-        )
-
-        # Resolve hostnames concurrently for all target IPs
-        target_ip_list = sorted(all_target_ips, key=lambda x: [int(p) for p in x.split(".")])
+        # Resolve hostnames concurrently for verified active target IPs
+        target_ip_list = sorted(active_target_ips, key=lambda x: [int(p) for p in x.split(".")])
         host_tasks = [resolve_hostname_fast(ip) for ip in target_ip_list]
         hostnames = await asyncio.gather(*host_tasks)
         ip_to_host = dict(zip(target_ip_list, hostnames))

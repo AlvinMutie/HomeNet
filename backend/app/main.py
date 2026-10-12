@@ -20,7 +20,10 @@ async def lifespan(app: FastAPI):
     logger.info("Initializing HomeNet database...")
     init_db()
     logger.info("HomeNet Manager API initialized.")
+    from backend.app.services.heartbeat import start_heartbeat, stop_heartbeat
+    start_heartbeat()
     yield
+    stop_heartbeat()
     logger.info("HomeNet Manager API shutdown.")
 
 

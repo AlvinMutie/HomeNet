@@ -29,6 +29,7 @@ interface DevicesViewProps {
   onEditDevice: (device: Device) => void;
   onBlockDevice: (device: Device) => void;
   onDeleteDevice: (deviceId: string) => void;
+  onPruneDevices: (olderThanHours?: number) => void;
 }
 
 export const DevicesView: React.FC<DevicesViewProps> = ({
@@ -38,6 +39,7 @@ export const DevicesView: React.FC<DevicesViewProps> = ({
   onEditDevice,
   onBlockDevice,
   onDeleteDevice,
+  onPruneDevices,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'responding' | 'offline' | 'trusted' | 'untrusted' | 'review'>('all');
@@ -117,6 +119,23 @@ export const DevicesView: React.FC<DevicesViewProps> = ({
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  const formatTimeAgo = (isoString: string) => {
+    try {
+      const diffMs = Date.now() - new Date(isoString).getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours < 24) return `${diffHours}h ago`;
+      const diffDays = Math.floor(diffHours / 24);
+      return `${diffDays}d ago`;
+    } catch {
+      return '';
+    }
+  };
+
+  const offlineCount = devices.filter((d) => !d.is_active).length;
 
   const getDeviceIcon = (device: Device) => {
     switch (device.device_type) {
@@ -200,6 +219,21 @@ export const DevicesView: React.FC<DevicesViewProps> = ({
               <Download className="w-3.5 h-3.5" />
               <span>Export</span>
             </button>
+
+            {offlineCount > 0 && (
+              <button
+                onClick={() => {
+                  if (window.confirm(`Clean up ${offlineCount} offline device record(s)? Currently active devices will be preserved.`)) {
+                    onPruneDevices(0);
+                  }
+                }}
+                className="inline-flex items-center space-x-1.5 px-3.5 h-9 text-xs font-semibold rounded-full bg-[#201518] hover:bg-[#2d1b20] text-rose-300 border border-[#421d23] active:scale-95 transition-all"
+                title="Remove offline / ghost records from database"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                <span>Prune Offline ({offlineCount})</span>
+              </button>
+            )}
 
             <button
               onClick={onTriggerScan}
@@ -433,10 +467,15 @@ export const DevicesView: React.FC<DevicesViewProps> = ({
                             )}
                           </div>
                         ) : (
-                          <span className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-[#16181f] text-zinc-400 font-medium border border-[#232731] text-[11px]">
-                            <span className="w-1.5 h-1.5 rounded-full bg-zinc-500" />
-                            <span>Offline</span>
-                          </span>
+                          <div className="space-y-0.5">
+                            <span className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-[#16181f] text-zinc-400 font-medium border border-[#232731] text-[11px]">
+                              <span className="w-1.5 h-1.5 rounded-full bg-zinc-500" />
+                              <span>Offline</span>
+                            </span>
+                            <p className="text-[10px] text-zinc-400 font-mono pl-1">
+                              {formatTimeAgo(device.last_seen)}
+                            </p>
+                          </div>
                         )}
                       </td>
 

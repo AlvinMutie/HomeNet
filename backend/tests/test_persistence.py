@@ -80,3 +80,37 @@ def test_marking_devices_inactive_without_deleting():
     recB = get_device_by_id(devB["id"])
     assert recB["is_active"] == 0
     assert recB["latency_ms"] is None
+
+
+def test_pruning_inactive_devices():
+    from backend.app.database import prune_inactive_devices
+
+    # devA active, devB inactive
+    devA = upsert_scanned_device(
+        device_id="dev-active",
+        ip_address="192.168.100.20",
+        mac_address="aa:bb:cc:dd:ee:20",
+        hostname="active-laptop",
+        manufacturer="Dell",
+        latency_ms=5.0,
+        is_randomized_mac=False,
+    )
+    devB = upsert_scanned_device(
+        device_id="dev-offline",
+        ip_address="192.168.100.21",
+        mac_address="aa:bb:cc:dd:ee:21",
+        hostname="old-phone",
+        manufacturer="Samsung",
+        latency_ms=12.0,
+        is_randomized_mac=False,
+    )
+
+    # Mark devB as inactive
+    mark_devices_inactive_except([devA["id"]])
+
+    # Pruning inactive devices deletes devB, keeps devA
+    deleted = prune_inactive_devices(older_than_hours=None)
+    assert deleted >= 1
+    assert get_device_by_id(devA["id"]) is not None
+    assert get_device_by_id(devB["id"]) is None
+
